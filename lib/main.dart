@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'game.dart';
 
-
 void main() {
   runApp(const MainApp());
 }
@@ -15,17 +14,13 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Align(
-            alignment: Alignment.centerLeft,
-            child: Text('Birdle'),
-          ),
+          title: Align(alignment: Alignment.centerLeft, child: Text('Birdle')),
         ),
         body: Center(child: GamePage()),
       ),
     );
   }
 }
-
 
 class Tile extends StatelessWidget {
   const Tile(this.letter, this.hitType, {super.key});
@@ -37,7 +32,7 @@ class Tile extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: Duration(milliseconds: 500),
-      curve: Curves.bounceIn, 
+      curve: Curves.bounceIn,
       height: 60,
       width: 60,
       decoration: BoxDecoration(
@@ -60,7 +55,7 @@ class Tile extends StatelessWidget {
 }
 
 class GamePage extends StatefulWidget {
-  GamePage({super.key});
+  const GamePage({super.key});
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -68,6 +63,30 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage> {
   final Game _game = Game();
+
+  bool _submitGuess(String input) {
+    final guess = input.trim().toLowerCase();
+    if (!RegExp(r'^[a-z]{5}$').hasMatch(guess)) {
+      _showMessage('Enter a 5-letter word.');
+      return false;
+    }
+
+    if (!_game.isLegalGuess(guess)) {
+      _showMessage('Not in word list.');
+      return false;
+    }
+
+    setState(() {
+      _game.guess(guess);
+    });
+    return true;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,32 +102,27 @@ class _GamePageState extends State<GamePage> {
                 for (final letter in guess) Tile(letter.char, letter.type),
               ],
             ),
-          GuessInput(
-            onSubmitGuess: (String guess) {
-              setState(() {
-                _game.guess(guess);
-              });
-            },
-          ),
+          GuessInput(onSubmitGuess: _submitGuess),
         ],
       ),
     );
   }
 }
 
-
 class GuessInput extends StatelessWidget {
   GuessInput({super.key, required this.onSubmitGuess});
 
-  final void Function(String) onSubmitGuess;
+  final bool Function(String) onSubmitGuess;
 
   final TextEditingController _textEditingController = TextEditingController();
 
   final FocusNode _focusNode = FocusNode();
 
   void _onSubmit() {
-    onSubmitGuess(_textEditingController.text);
-    _textEditingController.clear();
+    final wasSubmitted = onSubmitGuess(_textEditingController.text);
+    if (wasSubmitted) {
+      _textEditingController.clear();
+    }
     _focusNode.requestFocus();
   }
 
